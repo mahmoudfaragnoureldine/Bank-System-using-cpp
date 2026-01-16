@@ -1,5 +1,5 @@
-#ifndef BANKSYSTEM_H
-#define BANKSYSTEM_H
+#if !defined(BankSystem_h)
+#define BankSystem_h
 
 #include <iostream>
 #include <fstream>
@@ -17,10 +17,10 @@
  */
 class Account
 {
-public:
-    std::string id;
-    std::string name;
-    long long balance{};
+    public:
+        std::string id;
+        std::string name;
+        long long balance{};
 };
 
 /*
@@ -28,14 +28,14 @@ public:
  */
 class Transaction
 {
-public:
-    std::string ts_iso;        // ISO 8601 timestamp
-    std::string tx_id;         // Unique transaction ID
-    std::string type;          // deposit / withdraw / transfer
-    std::string from_id;       // source account (if applicable)
-    std::string to_id;         // destination account (if applicable)
-    long long amount_cents{};  // transaction amount
-    std::string note;          // user note
+    public:
+        std::string ts_iso;        // ISO 8601 timestamp
+        std::string tx_id;         // Unique transaction ID
+        std::string type;          // deposit / withdraw / transfer
+        std::string from_id;       // source account (if applicable)
+        std::string to_id;         // destination account (if applicable)
+        long long amount_cents{};  // transaction amount
+        std::string note;          // user note
 };
 
 /*
@@ -61,4 +61,4 @@ public:
     void Run();
 };
 
-#endif // BANKSYSTEM_H
+#endif // BankSystem_h
