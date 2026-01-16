@@ -1,8 +1,11 @@
 #include "BankSystem.h"
 
-int main() {
-    BankSystem system;
-    system.init();
-    system.run();
+int main()
+{
+    BankSystem bank;
+
+    bank.Init();
+    bank.Run();
+    
     return 0;
 }
