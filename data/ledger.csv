@@ -1,5 +1,4 @@
 ts_iso,tx_id,type,from,to,amount_cents,note
-2025-08-25T14:07:31,0000000001,DEPOSIT,-,ACC100,10000,initial deposit
-2025-11-30T10:45:00,ACC100,deposit,,TX123,500,try!
-2025-11-30T11:53:29,ACC100,deposit,,TX123,500,try2!
-2025-11-30T12:52:53,0000000001,deposit,,ACC100,500,try3
+2026-01-16T11:48:22,0000000001,deposit,,ACC100,1000,initial deposit
+2026-01-16T11:50:02,0000000002,withdraw,ACC100,,1000,initial wathdraw
+2026-01-16T11:51:21,0000000003,transfer,ACC100,ACC200,2000,intial transfer
