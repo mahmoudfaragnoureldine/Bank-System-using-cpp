@@ -12,18 +12,34 @@ void BankSystem::Init()
  */
 void BankSystem::ensureFilesExist()
 {
-    std::ifstream accIn("data/accounts.csv");
+    // accounts file
+    std::ifstream accIn("../data/accounts.csv");
     if (!accIn)
     {
-        std::ofstream accOut("data/accounts.csv");
-        accOut << "account_id,name,balance_cents\n";
+        std::ofstream accOut("../data/accounts.csv");
+        if (accOut.is_open())
+        {
+            accOut << "account_id,name,balance_cents\n";
+            accOut.close();
+            std::cout << "accounts.csv is created and written successfully!\n";
+        }
+        else
+            std::cout << "Failed to create accounts.csv!" << std::endl; 
     }
 
-    std::ifstream ledgerIn("data/ledger.csv");
+    // ledger file
+    std::ifstream ledgerIn("../data/ledger.csv");
     if (!ledgerIn)
     {
-        std::ofstream ledgerOut("data/ledger.csv");
-        ledgerOut << "ts_iso,tx_id,type,from,to,amount_cents,note\n";
+        std::ofstream ledgerOut("../data/ledger.csv");
+        if (ledgerOut.is_open())
+        {
+            ledgerOut << "ts_iso,tx_id,type,from,to,amount_cents,note\n";
+            ledgerOut.close();
+            std::cout << "ledger.csv is created and written successfully!\n";
+        }
+        else
+            std::cout << "Failed to create ledger.csv!" << std::endl; 
     }
 }
 
@@ -32,47 +48,69 @@ void BankSystem::ensureFilesExist()
  */
 void BankSystem::LoadFiles()
 {
-    std::ifstream accIn("data/accounts.csv");
-    std::string line;
-    std::getline(accIn, line); // skip header
-
-    while (std::getline(accIn, line))
+    // accounts.csv
+    std::ifstream accIn("../data/accounts.csv");
+    if (!accIn)
     {
-        std::stringstream ss(line);
-        std::string id, name, balanceStr;
-        std::getline(ss, id, ',');
-        std::getline(ss, name, ',');
-        std::getline(ss, balanceStr);
+        std::cout << "Failed to open accounts.csv for reading!\n";
+        return;
+    } 
 
-        if (!balanceStr.empty() &&
-            std::all_of(balanceStr.begin(), balanceStr.end(), ::isdigit))
+    std::string accline;
+    std::getline(accIn, accline); // skip header
+    
+    while (std::getline(accIn, accline))   // retun false when reaching end of the file
+    {
+        /* parse line */
+        std::stringstream parseLine(accline);
+        std::string id, name, balanceStr;
+        std::getline(parseLine, id, ',');
+        std::getline(parseLine, name, ',');
+        std::getline(parseLine, balanceStr);
+        //long long balance = std::stoll(balanceStr);
+        if (!balanceStr.empty() && std::all_of(balanceStr.begin(), balanceStr.end(), ::isdigit)) 
         {
-            accounts.push_back({id, name, std::stoll(balanceStr)});
+            long long balance = std::stoll(balanceStr);
+            accounts.push_back({id, name, balance});
+        } 
+        else
+        {
+            std::cout << "Invalid amount in account.csv: " << balanceStr << "\n";
         }
     }
 
-    std::ifstream ledgerIn("data/ledger.csv");
-    std::getline(ledgerIn, line); // skip header
-
-    while (std::getline(ledgerIn, line))
+    // ledger.csv
+    std::ifstream ledgerIn("../data/ledger.csv");
+    if (!ledgerIn)
     {
-        std::stringstream ss(line);
-        Transaction tx;
-        std::string amountStr;
-
-        std::getline(ss, tx.ts_iso, ',');
-        std::getline(ss, tx.tx_id, ',');
-        std::getline(ss, tx.type, ',');
-        std::getline(ss, tx.from_id, ',');
-        std::getline(ss, tx.to_id, ',');
-        std::getline(ss, amountStr, ',');
-        std::getline(ss, tx.note);
-
-        if (!amountStr.empty() &&
-            std::all_of(amountStr.begin(), amountStr.end(), ::isdigit))
+        std::cout << "Failed to open ledger.csv for reading!\n";
+        return;
+    }
+    
+    std::string ledgline;
+    std::getline(ledgerIn, ledgline); // skip header
+    
+    while (std::getline(ledgerIn, ledgline))   // retun false when reaching end of the file
+    {
+        /* parse line */
+        std::stringstream parseLine(ledgline);
+        std::string ts_iso, tx_id, type, from_id, to_id, amount_centsStr, note;
+        std::getline(parseLine, ts_iso, ',');
+        std::getline(parseLine, tx_id, ',');
+        std::getline(parseLine, type, ',');
+        std::getline(parseLine, from_id, ',');
+        std::getline(parseLine, to_id, ',');
+        std::getline(parseLine, amount_centsStr, ',');
+        std::getline(parseLine, note);
+        //long long amount_cents = std::stoll(amount_centsStr);
+        if (!amount_centsStr.empty() && std::all_of(amount_centsStr.begin(), amount_centsStr.end(), ::isdigit)) 
         {
-            tx.amount_cents = std::stoll(amountStr);
-            transactions.push_back(tx);
+            long long amount_cents = std::stoll(amount_centsStr);
+            transactions.push_back({ts_iso, tx_id, type, from_id, to_id, amount_cents, note});
+        } 
+        else
+        {
+            std::cout << "Invalid amount in ledger.csv: " << amount_centsStr << "\n";
         }
     }
 }
@@ -80,46 +118,65 @@ void BankSystem::LoadFiles()
 /*
  * Persists accounts and transactions back to disk.
  */
-void BankSystem::SaveFiles()
-{
-    std::ofstream accOut("data/accounts.csv");
-    accOut << "account_id,name,balance_cents\n";
+void BankSystem::SaveFiles() {
+    // 1) accounts.csv
+    std::ofstream accWrite("../data/accounts.csv");
+    if (!accWrite)
+    {
+        std::cout << "Failed to open accounts.csv for writing!\n";
+        return;
+    }
+    // write header
+    accWrite << "account_id,name,balance_cents\n";
+    // loop in every account
     for (const auto &acc : accounts)
     {
-        accOut << acc.id << "," << acc.name << "," << acc.balance << "\n";
+        accWrite << acc.id << "," << acc.name << "," << acc.balance << std::endl;
     }
-
-    std::ofstream ledgerOut("data/ledger.csv");
-    ledgerOut << "ts_iso,tx_id,type,from,to,amount_cents,note\n";
+    
+    // 2) ledger.csv
+    std::ofstream ledgWrite("../data/ledger.csv");
+    if(!ledgWrite)
+    {
+        std::cout << "Failed to open ledge.csv for writing!\n";
+        return;
+    }
+    // write header
+    ledgWrite << "ts_iso,tx_id,type,from,to,amount_cents,note\n";
+    // loop in every transaction
     for (const auto &tx : transactions)
     {
-        ledgerOut << tx.ts_iso << "," << tx.tx_id << "," << tx.type << ","
-                  << tx.from_id << "," << tx.to_id << ","
-                  << tx.amount_cents << "," << tx.note << "\n";
+        ledgWrite << tx.ts_iso << "," 
+            << tx.tx_id << "," 
+            << tx.type << "," 
+            << tx.from_id << "," 
+            << tx.to_id << "," 
+            << tx.amount_cents << "," 
+            << tx.note << std::endl;
     }
+    
 }
 
 /*
  * Returns current local time formatted as ISO 8601.
  */
-std::string BankSystem::getCurrentISOTime()
-{
-    auto now = std::chrono::system_clock::now();
-    std::time_t t = std::chrono::system_clock::to_time_t(now);
-    std::tm *tm = std::localtime(&t);
-
+std::string BankSystem::getCurrentISOTime() {
+    auto now = std::chrono::system_clock::now();    // get current time as time_point
+    std::time_t now_c = std::chrono::system_clock::to_time_t(now);   // from time_point to time_t   
+    std::tm* local = std::localtime(&now_c);    // from time_t to struct tm
     std::ostringstream oss;
-    oss << std::put_time(tm, "%Y-%m-%dT%H:%M:%S");
-    return oss.str();
+    oss << std::put_time(local, "%Y-%m-%dT%H:%M:%S");  // ISO
+    std::string ts_iso = oss.str();
+    return ts_iso;
 }
 
 /*
  * Generates a zero-padded unique transaction ID.
  */
-std::string BankSystem::generateTxId()
-{
+std::string BankSystem::generateTxId() {
+    tx_counter++;
     std::ostringstream oss;
-    oss << std::setw(10) << std::setfill('0') << ++tx_counter;
+    oss << std::setw(10) << std::setfill('0') << tx_counter;
     return oss.str();
 }
 
@@ -127,13 +184,12 @@ std::string BankSystem::generateTxId()
  * Main command loop for the banking system.
  * Handles user input and dispatches supported operations.
  */
-void BankSystem::Run()
-{
+void BankSystem::Run() {
     std::string command;
 
     while (true)
     {
-        std::cout << "\nEnter command (list, create, deposit, withdraw, transfer, balance, statement, quit): ";
+        std::cout << "Enter command (list, create, deposit, withdraw, transfer, balance, statement, quit): ";
         std::cin >> command;
 
         /* ===================== LIST ACCOUNTS ===================== */
@@ -142,15 +198,15 @@ void BankSystem::Run()
             for (const auto &acc : accounts)
             {
                 std::cout << acc.id << " | "
-                          << acc.name << " | "
-                          << acc.balance << " cents\n";
+                        << acc.name << " | "
+                        << acc.balance << " cents\n";
             }
         }
 
         /* ===================== CREATE ACCOUNT ===================== */
         else if (command == "create")
         {
-            Account acc{};
+            Account acc;
             std::cout << "Enter account id: ";
             std::cin >> acc.id;
 
@@ -163,15 +219,16 @@ void BankSystem::Run()
             accounts.push_back(acc);
             SaveFiles();
 
-            std::cout << "Account created successfully.\n";
+            std::cout << "Account created successfully!\n";
         }
 
         /* ===================== DEPOSIT ===================== */
         else if (command == "deposit")
         {
-            std::string id, note;
-            long long amount{};
-            bool found{false};
+            std::string id;
+            long long amount;
+            std::string note;
+            bool found = false;
 
             std::cout << "Account id: ";
             std::cin >> id;
@@ -189,7 +246,8 @@ void BankSystem::Run()
                 {
                     acc.balance += amount;
                     found = true;
-
+                    
+                    // add the transaction
                     Transaction tx;
                     tx.ts_iso = getCurrentISOTime();
                     tx.tx_id = generateTxId();
@@ -202,21 +260,25 @@ void BankSystem::Run()
                     transactions.push_back(tx);
                     SaveFiles();
 
-                    std::cout << "Deposit successful.\n";
+                    std::cout << "Deposit successful!\n";
                     break;
                 }
             }
 
             if (!found)
-                std::cout << "Account not found.\n";
+            {
+                std::cout << "Account not found!\n";
+            }
         }
-
+        
         /* ===================== WITHDRAW ===================== */
         else if (command == "withdraw")
         {
-            std::string id, note;
-            long long amount{};
-            bool found{false};
+            std::string id;
+            long long amount;
+            std::string note;
+            bool found = false;
+            bool enoughBalance = false;
 
             std::cout << "Account id: ";
             std::cin >> id;
@@ -233,47 +295,55 @@ void BankSystem::Run()
                 if (acc.id == id)
                 {
                     found = true;
-
-                    if (acc.balance < amount)
+                    if (acc.balance >= amount)
                     {
-                        std::cout << "Not enough balance.\n";
+                        enoughBalance = true;
+                        acc.balance -= amount;
+                    
+                        // add the transaction
+                        Transaction tx;
+                        tx.ts_iso = getCurrentISOTime();
+                        tx.tx_id = generateTxId();
+                        tx.type = "withdraw";
+                        tx.from_id = id;
+                        tx.to_id = "";
+                        tx.amount_cents = amount;
+                        tx.note = note;
+
+                        transactions.push_back(tx);
+                        SaveFiles();
+
+                        std::cout << "Withdraw successful!\n";
                         break;
                     }
-
-                    acc.balance -= amount;
-
-                    Transaction tx;
-                    tx.ts_iso = getCurrentISOTime();
-                    tx.tx_id = generateTxId();
-                    tx.type = "withdraw";
-                    tx.from_id = id;
-                    tx.to_id = "";
-                    tx.amount_cents = amount;
-                    tx.note = note;
-
-                    transactions.push_back(tx);
-                    SaveFiles();
-
-                    std::cout << "Withdraw successful.\n";
-                    break;
+                    
                 }
             }
-
             if (!found)
-                std::cout << "Account not found.\n";
+            {
+                std::cout << "Account not found!\n";
+            }
+            else if (!enoughBalance)
+            {
+                std::cout << "Not enough balance\n";
+            }
         }
 
         /* ===================== TRANSFER ===================== */
         else if (command == "transfer")
         {
-            std::string from_id, to_id, note;
-            long long amount{};
-            bool foundFrom{false}, foundTo{false};
+            std::string from_id;
+            std::string to_id;
+            long long amount;
+            std::string note;
+            bool foundFrom = false;
+            bool foundTo = false;
+            bool enoughBalance = false;
 
-            std::cout << "From account id: ";
+            std::cout << "Enter From account id: ";
             std::cin >> from_id;
 
-            std::cout << "To account id: ";
+            std::cout << "Enter To account id: ";
             std::cin >> to_id;
 
             std::cout << "Enter amount (cents): ";
@@ -283,88 +353,91 @@ void BankSystem::Run()
             std::cin.ignore();
             std::getline(std::cin, note);
 
-            for (auto &from : accounts)
+            for (auto &accFrom : accounts)
             {
-                if (from.id == from_id)
+                if (accFrom.id == from_id)
                 {
                     foundFrom = true;
-
-                    if (from.balance < amount)
+                    for (auto &accTo : accounts)
                     {
-                        std::cout << "Not enough balance.\n";
-                        break;
-                    }
-
-                    for (auto &to : accounts)
-                    {
-                        if (to.id == to_id)
+                        if (accTo.id == to_id)
                         {
                             foundTo = true;
+                            if (accFrom.balance >= amount)
+                            {
+                                enoughBalance = true;
+                                accFrom.balance -= amount;
+                                accTo.balance += amount;
 
-                            from.balance -= amount;
-                            to.balance += amount;
+                                Transaction tx;
+                                tx.ts_iso = getCurrentISOTime();
+                                tx.tx_id = generateTxId();
+                                tx.type = "transfer";
+                                tx.from_id = from_id;
+                                tx.to_id = to_id;
+                                tx.amount_cents = amount;
+                                tx.note = note;
 
-                            Transaction tx;
-                            tx.ts_iso = getCurrentISOTime();
-                            tx.tx_id = generateTxId();
-                            tx.type = "transfer";
-                            tx.from_id = from_id;
-                            tx.to_id = to_id;
-                            tx.amount_cents = amount;
-                            tx.note = note;
+                                transactions.push_back(tx);
+                                SaveFiles();
 
-                            transactions.push_back(tx);
-                            SaveFiles();
-
-                            std::cout << "Transfer successful.\n";
+                                std::cout << "Transfer successful!\n";
+                            } 
                             break;
                         }
-                    }
+                    } 
                     break;
                 }
             }
-
             if (!foundFrom)
-                std::cout << "From account not found.\n";
+            {
+                std::cout << "From Account not fount\n";
+            }
             else if (!foundTo)
-                std::cout << "To account not found.\n";
+            {
+                std::cout << "To Account not found\n";
+            }
+            else if (!enoughBalance)
+            {
+                std::cout << "Not enough balance\n";
+            }
         }
-
+        
         /* ===================== BALANCE ===================== */
         else if (command == "balance")
         {
             std::string id;
-            bool found{false};
+            bool found = false;
 
-            std::cout << "Account id: ";
+            std::cout << "Enter account id: ";
             std::cin >> id;
-
+            
             for (const auto &acc : accounts)
             {
                 if (acc.id == id)
                 {
-                    std::cout << "Current balance: " << acc.balance << " cents.\n";
                     found = true;
+                    std::cout << "Current balance: " << acc.balance << " cents.\n";
                     break;
                 }
             }
-
             if (!found)
-                std::cout << "Account not found.\n";
+                std::cout << "Account not found!\n";
         }
-
+        
         /* ===================== STATEMENT ===================== */
         else if (command == "statement")
         {
             std::string id;
-            int limit{};
-            bool found{false};
+            int limit;
+            bool found = false;
+            bool foundtransction = false;
 
-            std::cout << "Account id: ";
+            std::cout << "Enter acount id: ";
             std::cin >> id;
 
             std::cout << "Enter limit: ";
-            std::cin >> limit;
+            std::cin>> limit;
 
             for (const auto &acc : accounts)
             {
@@ -374,30 +447,25 @@ void BankSystem::Run()
                     break;
                 }
             }
-
             if (!found)
             {
-                std::cout << "Account not found.\n";
-                continue;
+                std::cout << "Account not found!\n";
             }
-
-            for (int i = static_cast<int>(transactions.size()) - 1;
-                 i >= 0 && limit > 0;
-                 --i)
+            for (int i = transactions.size() - 1; i >= 0 && limit > 0; i--)
             {
-                if (transactions[i].from_id == id ||
-                    transactions[i].to_id == id)
+                if (transactions[i].from_id == id || transactions[i].to_id == id)
                 {
-                    std::cout << transactions[i].ts_iso << ", "
-                              << transactions[i].tx_id << ", "
-                              << transactions[i].type << ", "
-                              << transactions[i].from_id << ", "
-                              << transactions[i].to_id << ", "
-                              << transactions[i].amount_cents << ", "
-                              << transactions[i].note << "\n";
+                    foundtransction = true;
+                    std::cout << transactions[i].ts_iso << ", " << transactions[i].tx_id << ", " << transactions[i].type 
+                        << ", " << transactions[i].from_id << ", " << transactions[i].to_id 
+                        << ", " << transactions[i].amount_cents << ", " << transactions[i].note << "\n"; 
                     --limit;
                 }
             }
+            if (!foundtransction)
+            {
+                std::cout << "No transactions found for this account.\n";
+            }  
         }
 
         /* ===================== EXIT ===================== */
@@ -406,10 +474,9 @@ void BankSystem::Run()
             std::cout << "Exiting system...\n";
             break;
         }
-
         else
-        {
-            std::cout << "Unknown command.\n";
-        }
+            std::cout << "Unknown command...\n";
+           
     }
+    
 }
